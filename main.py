@@ -2,8 +2,26 @@ from urllib.request import urlopen as uReq
 from bs4 import BeautifulSoup as soup
 
 
-def getChampUrl(userChampionName):
-    my_url = 'https://na.op.gg/champion/statistics'
+def getChampUrl(userInput):
+    
+    userChampionName = userInput.split(" ")[0]
+    if len(userInput.split(" ")) == 2:
+        userRole = userInput.split(" ")[1]
+    
+        if userRole == "bot":
+            userRole = "adc"
+        elif userRole == "sup":
+            userRole = "support"
+        elif userRole == "jg" or userRole == "jgl" or userRole == "jng":
+            userRole = "jungle"
+        elif userRole == "middle":
+            userRole = "mid"
+    
+    userChampionName = userChampionName.lower()
+    userChampionName = userChampionName.replace(" ", "")
+    userChampionName = userChampionName.replace("'", "")
+    
+    my_url = 'https://na.op.gg/champions'
 
     uClient = uReq(my_url)
     page_html = uClient.read()
@@ -11,41 +29,27 @@ def getChampUrl(userChampionName):
 
     page_soup = soup(page_html, "html.parser")
 
-    championNames = page_soup.findAll("div", {"class": "champion-index__champion-item__name"})
+    championNames = page_soup.findAll("img", {"class": "bg-image"})
 
     listOfChampions = []
-
     for champion in championNames:
-        listOfChampions.append(champion.string)
-    isNotChampion = True
-    championIndex = -1
-    for champion in listOfChampions:
+        listOfChampions.append(champion["alt"])
 
-        championIndex += 1
+    isNotChampion = True
+    for champion in listOfChampions:
         if userChampionName == champion:
             isNotChampion = False
             break
-
-    userChampionName = userChampionName.lower()
-    userChampionName = userChampionName.replace(" ", "")
-    userChampionName = userChampionName.replace("'", "")
 
     if isNotChampion:
         print("Inputted champion does not exist, double check spelling, capitalization, and punctuation!")
         exit()
 
-    championRoles = page_soup.findAll("div", {"class", "champion-index__champion-item__positions"})
-
-    if len(championRoles[championIndex].text) >= 8:
-        print("Which role are you playing?" + championRoles[championIndex].text)
-        userRole = str(input())
-        userRole = userRole.lower()
+    if len(userInput.split(" ")) == 2:
+        championUrl = 'https://na.op.gg/champions/' + userChampionName + '/' + userRole + '/build'
     else:
-        userRole = ""
-
-    championUrl = 'https://na.op.gg/champion/' + userChampionName + '/statistics/' + userRole
+        championUrl = 'https://na.op.gg/champions/' + userChampionName + '/build'
     return championUrl
-
 
 def getChampPage(championUrl):
     championPage = uReq(championUrl).read()
@@ -53,7 +57,6 @@ def getChampPage(championUrl):
 
     championPage_soup = soup(championPage, "html.parser")
     return championPage_soup
-
 
 def getChampItems(championPage_soup):
     championItemBody = championPage_soup.findAll("td", {
@@ -63,7 +66,6 @@ def getChampItems(championPage_soup):
         print("Not enough people have played your champion so data cannot be retrieved")
         exit()
 
-    # print(championItemBody[0].ul)
     startingItems = championItemBody[0].ul.findAll("li", {"class": "champion-stats__list__item tip"})
 
     index = 0
@@ -85,7 +87,6 @@ def getChampItems(championPage_soup):
     print("Boots: ")
     boots = (championItemBody[7].li["title"].split("</b>")[0]).split(">")[1]
     print("   " + boots)
-
 
 def getChampRunes(championPage_soup):
     championKeyStone = championPage_soup.findAll("tbody", {"class": "tabItem ChampionKeystoneRune-1"})
@@ -138,11 +139,11 @@ def getChampRunes(championPage_soup):
         print("   " + miniRunes[miniRunesIndex]["title"].split("<span>")[1].split("<")[0])
         miniRunesIndex = miniRunesIndex + 1
 
-
 if __name__ == "__main__":
 
     userChampionName = str(input("Type the name of your champion here: "))
-    championUrl = getChampUrl(userChampionName)
-    championPage_soup = getChampPage(championUrl)
-    getChampItems(championPage_soup)
-    getChampRunes(championPage_soup)
+    print(getChampUrl(userChampionName))
+    # championUrl = getChampUrl(userChampionName)
+    # championPage_soup = getChampPage(championUrl)
+    # getChampItems(championPage_soup)
+    # getChampRunes(championPage_soup)
