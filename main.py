@@ -1,25 +1,32 @@
 from urllib.request import urlopen as uReq
 from bs4 import BeautifulSoup as soup
 
-
 def getChampUrl(userInput):
-    
-    userChampionName = userInput.split(" ")[0]
-    if len(userInput.split(" ")) == 2:
-        userRole = userInput.split(" ")[1]
-    
-        if userRole == "bot":
-            userRole = "adc"
-        elif userRole == "sup":
-            userRole = "support"
-        elif userRole == "jg" or userRole == "jgl" or userRole == "jng":
-            userRole = "jungle"
-        elif userRole == "middle":
-            userRole = "mid"
+    if len(userInput.split(",")) == 1:
+        print("Please use format:")
+        print("Champion Name, Champion Role")
+        print("ex: Master Yi, Jungle")
+        exit()
+
+    userChampionName = userInput.split(",")[0]
+    userRole = userInput.split(",")[1]
     
     userChampionName = userChampionName.lower()
     userChampionName = userChampionName.replace(" ", "")
     userChampionName = userChampionName.replace("'", "")
+    
+    userRole = userRole.replace(" ", "")
+    userRole = userRole.lower()
+
+    if userRole == "bot":
+        userRole = "adc"
+    elif userRole == "sup":
+        userRole = "support"
+    elif userRole == "jg" or userRole == "jgl" or userRole == "jng":
+        userRole = "jungle"
+    elif userRole == "middle":
+        userRole = "mid"
+    
     
     my_url = 'https://na.op.gg/champions'
 
@@ -45,48 +52,41 @@ def getChampUrl(userInput):
         print("Inputted champion does not exist, double check spelling, capitalization, and punctuation!")
         exit()
 
-    if len(userInput.split(" ")) == 2:
-        championUrl = 'https://na.op.gg/champions/' + userChampionName + '/' + userRole + '/build'
-    else:
-        championUrl = 'https://na.op.gg/champions/' + userChampionName + '/build'
+    championUrl = 'https://na.op.gg/champions/' + userChampionName + '/' + userRole + '/build'
     return championUrl
 
 def getChampPage(championUrl):
-    championPage = uReq(championUrl).read()
-    uReq(championUrl).close()
+    uClient = uReq(championUrl)
+    page_html = uClient.read()
+    uClient.close()
 
-    championPage_soup = soup(championPage, "html.parser")
+    championPage_soup = soup(page_html, "html.parser")
     return championPage_soup
 
 def getChampItems(championPage_soup):
-    championItemBody = championPage_soup.findAll("td", {
-        "class": "champion-overview__data champion-overview__border champion-overview__border--first"})
+    championItemBody = championPage_soup.findAll("div", {"class": "css-jhxxsn e1dnizum0"})[2]
+    
+    startingItemBody = championItemBody.findAll("img")
+    startingItem1 = startingItemBody[0]["alt"]
+    startingItem2 = startingItemBody[1]["alt"]
+    
+    try:
+        secondStartingItem = championItemBody.findAll("div", {"class": "item_icon css-13iw28v etbnemc0"})[1]
+        secondItemQuantityBody = secondStartingItem.findAll("span", {"class": "css-12wt4yp e11yrp6z1"})[0]
+        secondItemQuantity = "(" + secondItemQuantityBody.string + ")"
+    except:
+        secondItemQuantity = ""
+    
+    coreItems = championItemBody.findAll("td", {"class": "css-1srg9dv epbr24v1"})[0].findAll("img")
+    
+    boots = championItemBody.findAll("td", {"class": "css-g795n0 epbr24v1"})[2].findAll("img")[0]["alt"]
 
-    if len(championItemBody) < 10:
-        print("Not enough people have played your champion so data cannot be retrieved")
-        exit()
+    output = "\nStarting Items:\n\n    " + startingItem1 + "\n    " + startingItem2 + " " + secondItemQuantity + "\n\nBoots:\n\n    " + boots + "\n\nCore Items:\n\n"
 
-    startingItems = championItemBody[0].ul.findAll("li", {"class": "champion-stats__list__item tip"})
-
-    index = 0
-    print("")
-    print("Starting Items: ")
-    while index < len(startingItems):
-        print("  " + str(index + 1) + ". " + startingItems[index]["title"].split("</b>")[0].split(">")[1])
-        index += 1
-    print("")
-
-    coreItems = championItemBody[2].ul.findAll("li", {"class": "champion-stats__list__item tip"})
-
-    print("Core Items: ")
-    print("  1. " + coreItems[0]["title"].split("</b>")[0].split(">")[1])
-    print("  2. " + coreItems[1]["title"].split("</b>")[0].split(">")[1])
-    print("  3. " + coreItems[2]["title"].split("</b>")[0].split(">")[1])
-    print("")
-
-    print("Boots: ")
-    boots = (championItemBody[7].li["title"].split("</b>")[0]).split(">")[1]
-    print("   " + boots)
+    for item in coreItems:
+        output = output + "    " + item["alt"] + "\n"
+        
+    print(output)
 
 def getChampRunes(championPage_soup):
     championKeyStone = championPage_soup.findAll("tbody", {"class": "tabItem ChampionKeystoneRune-1"})
@@ -99,7 +99,6 @@ def getChampRunes(championPage_soup):
     championRunes = championPage_soup.findAll("tbody", {"class": "tabItem ChampionKeystoneRune-1"})
     championRunes = championRunes[0]
     championRunes = championRunes.findAll("div", {"class": "perk-page__item perk-page__item--active"})
-    # print(championRunes[0].div.img["alt"])
 
     runesIndex = 0
     runeList = [championKeyStone]
@@ -141,9 +140,9 @@ def getChampRunes(championPage_soup):
 
 if __name__ == "__main__":
 
+    output = ""
     userChampionName = str(input("Type the name of your champion here: "))
-    print(getChampUrl(userChampionName))
-    # championUrl = getChampUrl(userChampionName)
-    # championPage_soup = getChampPage(championUrl)
-    # getChampItems(championPage_soup)
+    championUrl = getChampUrl(userChampionName)
+    championPage_soup = getChampPage(championUrl)
+    getChampItems(championPage_soup)
     # getChampRunes(championPage_soup)
