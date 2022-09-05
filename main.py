@@ -27,7 +27,11 @@ def getChampUrl(userInput):
     elif userRole == "middle":
         userRole = "mid"
     
-    
+    roles = {'top', 'jungle', 'mid', 'adc', 'support'}
+
+    if userRole not in roles:
+        print('Inputted role does not exist')
+        exit()
     my_url = 'https://na.op.gg/champions'
 
     uClient = uReq(my_url)
@@ -81,68 +85,51 @@ def getChampItems(championPage_soup):
     
     boots = championItemBody.findAll("td", {"class": "css-g795n0 epbr24v1"})[2].findAll("img")[0]["alt"]
 
-    output = "\nStarting Items:\n\n    " + startingItem1 + "\n    " + startingItem2 + " " + secondItemQuantity + "\n\nBoots:\n\n    " + boots + "\n\nCore Items:\n\n"
+    output = "\nStarting Items:\n    " + startingItem1 + "\n    " + startingItem2 + " " + secondItemQuantity + "\n\nBoots:\n    " + boots + "\n\nCore Items:\n"
 
     for item in coreItems:
         output = output + "    " + item["alt"] + "\n"
-        
-    print(output)
+
+    return output
 
 def getChampRunes(championPage_soup):
-    championKeyStone = championPage_soup.findAll("tbody", {"class": "tabItem ChampionKeystoneRune-1"})
-    championKeyStone = championKeyStone[0]
-    championKeyStone = championKeyStone.findAll("div", {
-        "class": "perk-page__item perk-page__item--keystone perk-page__item--active"})
+    
+    keystone = championPage_soup.findAll("div", {"class": "css-1soapw6 e12igh9s4"})[0].findAll("img")[1]["alt"]
+    output = "Runes:\n    " + keystone + "\n"
+    runes = championPage_soup.findAll("div", {"class": "css-1x2xypo e1o8f101"})
+    
+    counter = 0
+    for rune in runes:
+        if counter == 3:
+            output += "\n"
+        output = output + "    " + rune.findAll("img")[0]["alt"] + '\n'
+        counter += 1
+        
+    littleRunes = championPage_soup.findAll("img", {"class": "css-1tnxdkh e1gtrici1"})
+    for runes in littleRunes:
+        if runes["src"] == "https://opgg-static.akamaized.net/images/lol/perkShard/5005.png?image=q_auto,f_png,w_48&v=1662111457525":
+            output = output + "\n    Attack Speed"
+        elif runes["src"] == "https://opgg-static.akamaized.net/images/lol/perkShard/5008.png?image=q_auto,f_png,w_48&v=1662111457525":
+            output = output + "\n    Adaptive Force"
+        elif runes["src"] == "https://opgg-static.akamaized.net/images/lol/perkShard/5002.png?image=q_auto,f_png,w_48&v=1662111457525":
+            output = output + "\n    Armor"
+        elif runes["src"] == "https://opgg-static.akamaized.net/images/lol/perkShard/5003.png?image=q_auto,f_png,w_48&v=1662111457525":
+            output = output + "\n    Magic Resist"
+        elif runes["src"] == "https://opgg-static.akamaized.net/images/lol/perkShard/5007.png?image=q_auto,f_png,w_48&v=1662111457525":
+            output = output + "\n    Cooldown Reduction"
+        elif runes["src"] == "https://opgg-static.akamaized.net/images/lol/perkShard/5001.png?image=q_auto,f_png,w_48&v=1662111457525":
+            output = output + "\n    Health"
 
-    championKeyStone = championKeyStone[0].div.img["alt"]
-
-    championRunes = championPage_soup.findAll("tbody", {"class": "tabItem ChampionKeystoneRune-1"})
-    championRunes = championRunes[0]
-    championRunes = championRunes.findAll("div", {"class": "perk-page__item perk-page__item--active"})
-
-    runesIndex = 0
-    runeList = [championKeyStone]
-    while runesIndex < 5:
-        runesIndex += 1
-        runeList.append(championRunes[runesIndex].div.img["alt"])
-
-    primaryRunes = [runeList[0], runeList[5], runeList[1], runeList[2]]
-    secondaryRunes = [runeList[3], runeList[4]]
-
-    primaryRunesString = ""
-    for rune in primaryRunes:
-        if rune == primaryRunes[3]:
-            primaryRunesString = primaryRunesString + rune
-        else:
-            primaryRunesString = primaryRunesString + rune + " || "
-
-    print("")
-    print("Runes: ")
-    print("   Primary: " + primaryRunesString)
-
-    secondaryRunesString = ""
-    for rune in secondaryRunes:
-        if rune == secondaryRunes[1]:
-            secondaryRunesString = secondaryRunesString + rune
-        else:
-            secondaryRunesString = secondaryRunesString + rune + " || "
-    print("   Secondary: " + secondaryRunesString)
-
-    miniRunes = championPage_soup.findAll("div", {"class": "fragment__detail"})
-    miniRunes = miniRunes[0]
-    miniRunes = miniRunes.findAll("img", {"class": "active tip"})
-    # # print(miniRunes[0]["title"].split("<span>")[1].split("<")[0])
-
-    miniRunesIndex = 0
-    while miniRunesIndex < 3:
-        print("   " + miniRunes[miniRunesIndex]["title"].split("<span>")[1].split("<")[0])
-        miniRunesIndex = miniRunesIndex + 1
+    return output
 
 if __name__ == "__main__":
-
-    output = ""
     userChampionName = str(input("Type the name of your champion here: "))
     championUrl = getChampUrl(userChampionName)
     championPage_soup = getChampPage(championUrl)
-    getChampItems(championPage_soup)
-    # getChampRunes(championPage_soup)
+    try:
+        itemOutput = getChampItems(championPage_soup)
+        runeOutput = getChampRunes(championPage_soup)
+        output = itemOutput + '\n' + runeOutput
+        print(output)
+    except:
+        print("Inputted champion has insufficient data in this role")
